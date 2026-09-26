@@ -1,8 +1,8 @@
-# SubastaAuto GT — Plataforma Web de Subastas de Vehículos en Tiempo Real (Caso Copart)
+﻿# SubastaAuto GT — Plataforma Web de Subastas de Vehículos en Tiempo Real (Caso Copart)
 
 ## 🔗 Sitio web publicado
 
-### 👉 **https://REEMPLAZAR-CON-ID-DEL-PROYECTO.web.app** 👈
+### 👉 **https://subastaauto-gt.web.app** 👈
 
 ---
 
