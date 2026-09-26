@@ -1,0 +1,24 @@
+{
+  "name": "subastas-copart-gt",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "seed": "node --env-file=.env scripts/seed.mjs",
+    "test:rules": "npx firebase-tools@13 emulators:exec --only auth,database --project demo-subastas \"node scripts/test-rules.mjs\"",
+    "deploy":"vite build && npx firebase-tools deploy"
+  },
+  "dependencies": {
+    "firebase": "^11.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.8"
+  }
+}

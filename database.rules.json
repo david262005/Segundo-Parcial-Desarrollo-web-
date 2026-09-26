@@ -1,0 +1,93 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "catalogs": {
+      ".read": true,
+      ".write": "auth != null && !data.exists()"
+    },
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['nombre', 'apellido', 'email', 'telefono'])",
+        "nombre": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 60" },
+        "apellido": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 60" },
+        "email": { ".validate": "newData.isString() && newData.val() === auth.token.email" },
+        "telefono": { ".validate": "newData.isString() && newData.val().matches(/^[0-9+ -]{8,20}$/)" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "vehicles": {
+      ".read": true,
+      ".indexOn": ["ownerId", "cierre"],
+      "$vid": {
+        ".write": "auth != null && newData.exists() && newData.child('ownerId').val() === auth.uid && (!data.exists() || data.child('ownerId').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['ownerId', 'anio', 'tipo', 'marca', 'modelo', 'motor', 'transmision', 'combustible', 'traccion', 'cilindros', 'dano', 'precioBase', 'inicio', 'cierre', 'portada', 'fotosCount']) && newData.child('cierre').val() > newData.child('inicio').val() && (!root.child('ofertas/' + $vid).exists() || (newData.child('precioBase').val() === data.child('precioBase').val() && newData.child('inicio').val() === data.child('inicio').val() && newData.child('cierre').val() === data.child('cierre').val()))",
+        "anio": { ".validate": "newData.isNumber() && newData.val() >= 1950 && newData.val() <= 2030" },
+        "tipo": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "marca": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "modelo": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
+        "motor": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
+        "transmision": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "combustible": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "traccion": { ".validate": "newData.val() === 'AWD' || newData.val() === 'FWD' || newData.val() === 'RWD' || newData.val() === '4WD'" },
+        "cilindros": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 16" },
+        "dano": { ".validate": "newData.val() === 'verde' || newData.val() === 'amarillo' || newData.val() === 'rojo'" },
+        "precioBase": { ".validate": "newData.isNumber() && newData.val() > 0" },
+        "inicio": { ".validate": "newData.isNumber()" },
+        "cierre": { ".validate": "newData.isNumber()" },
+        "portada": { ".validate": "newData.isString() && newData.val().length < 400000" },
+        "fotosCount": { ".validate": "newData.isNumber() && newData.val() >= 5" },
+        "descripcion": { ".validate": "newData.isString() && newData.val().length <= 1000" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "ownerId": { ".validate": "newData.isString()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "fotos": {
+      ".read": true,
+      "$vid": {
+        ".write": "auth != null && newData.exists() && newData.parent().parent().child('vehicles/' + $vid + '/ownerId').val() === auth.uid",
+        ".validate": "newData.hasChildren(['0', '1', '2', '3', '4'])",
+        "$i": { ".validate": "newData.isString() && newData.val().length < 3000000" }
+      }
+    },
+
+    "ofertas": {
+      ".read": true,
+      "$vid": {
+        ".write": "auth != null && newData.exists()",
+        ".validate": "newData.hasChildren(['monto', 'fecha', 'cantidad']) && root.child('vehicles/' + $vid).exists() && root.child('vehicles/' + $vid + '/ownerId').val() !== auth.uid && now >= root.child('vehicles/' + $vid + '/inicio').val() && now < root.child('vehicles/' + $vid + '/cierre').val() && newData.child('monto').val() >= root.child('vehicles/' + $vid + '/precioBase').val() && (!data.exists() || newData.child('monto').val() * 10 >= data.child('monto').val() * 11) && newData.child('cantidad').val() === (data.exists() ? data.child('cantidad').val() + 1 : 1) && newData.parent().parent().child('ganadores/' + $vid).val() === auth.uid && newData.parent().parent().child('misPujas/' + auth.uid + '/' + $vid).val() === newData.child('monto').val()",
+        "monto": { ".validate": "newData.isNumber()" },
+        "fecha": { ".validate": "newData.val() === now" },
+        "cantidad": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "ganadores": {
+      "$vid": {
+        ".read": false,
+        ".write": "auth != null && newData.val() === auth.uid",
+        ".validate": "newData.parent().parent().child('ofertas/' + $vid + '/fecha').val() === now"
+      }
+    },
+
+    "misPujas": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$vid": {
+          ".write": "auth != null && auth.uid === $uid && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() === newData.parent().parent().parent().child('ofertas/' + $vid + '/monto').val() && newData.parent().parent().parent().child('ofertas/' + $vid + '/fecha').val() === now"
+        }
+      }
+    }
+  }
+}
