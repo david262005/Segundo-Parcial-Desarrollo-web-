@@ -86,6 +86,7 @@ npm install
 npx firebase-tools login
 npx firebase-tools deploy --only database   # publica las reglas del servidor
 npm run seed                                # crea los 3 usuarios, catálogos y vehículos de ejemplo
+npm run fotos                               # coloca fotografías reales a los vehículos de ejemplo
 npm run dev                                 # desarrollo local: http://localhost:5173
 npm run deploy                              # compila y publica en Firebase Hosting
 ```
@@ -97,3 +98,7 @@ npm run test:rules
 ```
 
 Este comando ejecuta 28 pruebas automáticas sobre el emulador de Firebase (requiere Java 11 o superior). Prueba, entre otras cosas, el bloqueo a usuarios anónimos, el precio base, el incremento del 10 %, los horarios de la subasta, la concurrencia y la privacidad del ofertante.
+
+## Créditos de las fotografías
+
+Las fotos de los vehículos de ejemplo provienen de [Wikimedia Commons](https://commons.wikimedia.org) y se usan bajo sus licencias libres (Creative Commons / dominio público). Los derechos pertenecen a sus respectivos autores.

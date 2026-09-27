@@ -4,6 +4,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { getDatabase, ref, get, set, update, push, serverTimestamp } from 'firebase/database';
 import { DEFAULT_CATALOGS } from '../src/data/catalogs.js';
+import { USERS } from './users.mjs';
 
 const env = process.env;
 if (!env.VITE_FIREBASE_API_KEY || !env.VITE_FIREBASE_DATABASE_URL) {
@@ -21,11 +22,6 @@ const app = initializeApp({
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-export const USERS = [
-  { nombre: 'Ana', apellido: 'López', email: 'ana.lopez@subastaauto.gt', telefono: '5555 1001', password: 'Subasta#2026A' },
-  { nombre: 'Bruno', apellido: 'Méndez', email: 'bruno.mendez@subastaauto.gt', telefono: '5555 1002', password: 'Subasta#2026B' },
-  { nombre: 'Carla', apellido: 'Ruiz', email: 'carla.ruiz@subastaauto.gt', telefono: '5555 1003', password: 'Subasta#2026C' },
-];
 
 // ---------- Imágenes de ejemplo (SVG generado, sin depender de internet) ----------
 const VIEWS = ['Vista lateral', 'Vista frontal', 'Vista trasera', 'Interior', 'Motor', 'Detalle de daño'];
