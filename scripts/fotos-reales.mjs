@@ -1,4 +1,4 @@
-﻿// Reemplaza las fotos de ejemplo de los vehículos del seed por fotografías reales
+// Reemplaza las fotos de ejemplo de los vehículos del seed por fotografías reales
 // de Wikimedia Commons (licencias libres). Uso: npm run fotos  (añadir --dry para solo listar)
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';

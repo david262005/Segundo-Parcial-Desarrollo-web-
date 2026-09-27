@@ -26,6 +26,33 @@ const EMPTY_FILTERS = {
   orden: 'cierre',
 };
 
+const FACET_KEYS = ['tipo', 'marca', 'transmision', 'combustible', 'traccion', 'cilindros', 'danos'];
+
+/** ¿El vehículo cumple los filtros? `skip` ignora un filtro (para contar opciones). */
+function matches(v, f, oferta, now, skip) {
+  const q = f.q.trim().toLowerCase();
+  const modelo = f.modelo.trim().toLowerCase();
+  const status = auctionStatus(v, oferta, now);
+  const precio = oferta ? oferta.monto : v.precioBase;
+  const on = (key) => key !== skip && f[key] !== '';
+  if (q && !`${v.anio} ${v.marca} ${v.modelo} ${v.motor} ${v.tipo}`.toLowerCase().includes(q)) return false;
+  if (on('tipo') && v.tipo !== f.tipo) return false;
+  if (on('marca') && v.marca !== f.marca) return false;
+  if (modelo && !v.modelo.toLowerCase().includes(modelo)) return false;
+  if (f.anioMin && v.anio < Number(f.anioMin)) return false;
+  if (f.anioMax && v.anio > Number(f.anioMax)) return false;
+  if (on('transmision') && v.transmision !== f.transmision) return false;
+  if (on('combustible') && v.combustible !== f.combustible) return false;
+  if (on('traccion') && v.traccion !== f.traccion) return false;
+  if (on('cilindros') && v.cilindros !== Number(f.cilindros)) return false;
+  if (skip !== 'danos' && f.danos.length && !f.danos.includes(v.dano)) return false;
+  if (f.precioMax && precio > Number(f.precioMax)) return false;
+  if (f.estado === 'activa' && status !== 'activa') return false;
+  if (f.estado === 'proxima' && status !== 'proxima') return false;
+  if (f.estado === 'cerrada' && status !== 'vendida' && status !== 'desierta') return false;
+  return true;
+}
+
 export default function Home() {
   const { user } = useAuth();
   const catalogs = useCatalogs();
@@ -58,29 +85,7 @@ export default function Home() {
 
   const filtered = useMemo(() => {
     if (!vehicles) return [];
-    const q = f.q.trim().toLowerCase();
-    const modelo = f.modelo.trim().toLowerCase();
-    const list = vehicles.filter((v) => {
-      const oferta = ofertas[v.id];
-      const status = auctionStatus(v, oferta, now);
-      const precio = oferta ? oferta.monto : v.precioBase;
-      if (q && !`${v.anio} ${v.marca} ${v.modelo} ${v.motor} ${v.tipo}`.toLowerCase().includes(q)) return false;
-      if (f.tipo && v.tipo !== f.tipo) return false;
-      if (f.marca && v.marca !== f.marca) return false;
-      if (modelo && !v.modelo.toLowerCase().includes(modelo)) return false;
-      if (f.anioMin && v.anio < Number(f.anioMin)) return false;
-      if (f.anioMax && v.anio > Number(f.anioMax)) return false;
-      if (f.transmision && v.transmision !== f.transmision) return false;
-      if (f.combustible && v.combustible !== f.combustible) return false;
-      if (f.traccion && v.traccion !== f.traccion) return false;
-      if (f.cilindros !== '' && v.cilindros !== Number(f.cilindros)) return false;
-      if (f.danos.length && !f.danos.includes(v.dano)) return false;
-      if (f.precioMax && precio > Number(f.precioMax)) return false;
-      if (f.estado === 'activa' && status !== 'activa') return false;
-      if (f.estado === 'proxima' && status !== 'proxima') return false;
-      if (f.estado === 'cerrada' && status !== 'vendida' && status !== 'desierta') return false;
-      return true;
-    });
+    const list = vehicles.filter((v) => matches(v, f, ofertas[v.id], now));
     const price = (v) => (ofertas[v.id] ? ofertas[v.id].monto : v.precioBase);
     const closed = (v) => (now >= v.cierre ? 1 : 0);
     const sorters = {
@@ -92,6 +97,30 @@ export default function Home() {
     };
     return list.sort(sorters[f.orden]);
   }, [vehicles, ofertas, f, now]);
+
+  // Cuántos vehículos hay por opción, aplicando todos los demás filtros (búsqueda facetada)
+  const facets = useMemo(() => {
+    const res = {};
+    FACET_KEYS.forEach((key) => {
+      res[key] = {};
+      (vehicles || []).forEach((v) => {
+        if (!matches(v, f, ofertas[v.id], now, key)) return;
+        const val = String(key === 'danos' ? v.dano : v[key]);
+        res[key][val] = (res[key][val] || 0) + 1;
+      });
+    });
+    return res;
+  }, [vehicles, ofertas, f, now]);
+
+  const options = (key, list) =>
+    list.map((x) => {
+      const n = facets[key][String(x)] || 0;
+      return (
+        <option key={x} value={x} disabled={n === 0 && String(f[key]) !== String(x)}>
+          {x === 0 ? '0 (eléctrico)' : x} ({n})
+        </option>
+      );
+    });
 
   const stats = useMemo(() => {
     const all = vehicles || [];
@@ -195,7 +224,7 @@ export default function Home() {
                   title={d.descripcion}
                 >
                   <span className="dot" />
-                  {d.nombre}
+                  {d.nombre} ({facets.danos[d.id] || 0})
                 </button>
               ))}
             </div>
@@ -204,18 +233,14 @@ export default function Home() {
             <label>Tipo de artículo</label>
             <select value={f.tipo} onChange={set('tipo')}>
               <option value="">Todos</option>
-              {catalogs.tipos.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              {options('tipo', catalogs.tipos)}
             </select>
           </div>
           <div className="field">
             <label>Marca</label>
             <select value={f.marca} onChange={set('marca')}>
               <option value="">Todas</option>
-              {catalogs.marcas.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              {options('marca', catalogs.marcas)}
             </select>
           </div>
           <div className="field">
@@ -233,38 +258,28 @@ export default function Home() {
             <label>Transmisión</label>
             <select value={f.transmision} onChange={set('transmision')}>
               <option value="">Todas</option>
-              {catalogs.transmisiones.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              {options('transmision', catalogs.transmisiones)}
             </select>
           </div>
           <div className="field">
             <label>Combustible</label>
             <select value={f.combustible} onChange={set('combustible')}>
               <option value="">Todos</option>
-              {catalogs.combustibles.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              {options('combustible', catalogs.combustibles)}
             </select>
           </div>
           <div className="field">
             <label>Tren de manejo</label>
             <select value={f.traccion} onChange={set('traccion')}>
               <option value="">Todos</option>
-              {catalogs.tracciones.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              {options('traccion', catalogs.tracciones)}
             </select>
           </div>
           <div className="field">
             <label>Cilindros</label>
             <select value={f.cilindros} onChange={set('cilindros')}>
               <option value="">Todos</option>
-              {catalogs.cilindros.map((x) => (
-                <option key={x} value={x}>
-                  {x === 0 ? '0 (eléctrico)' : x}
-                </option>
-              ))}
+              {options('cilindros', catalogs.cilindros)}
             </select>
           </div>
           <div className="field">
